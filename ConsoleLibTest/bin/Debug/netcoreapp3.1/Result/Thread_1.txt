@@ -1,0 +1,10 @@
+0. Successful.
+1. Successful.
+2. Successful.
+3. Failed to reserve the product. An error occurred while updating the entries. See the inner exception for details.
+4. Successful.
+5. Successful.
+6. Successful.
+7. Failed to reserve the product. An error occurred while updating the entries. See the inner exception for details.
+8. Failed to reserve the product. An error occurred while updating the entries. See the inner exception for details.
+9. Successful.
