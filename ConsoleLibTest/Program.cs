@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -19,6 +20,13 @@ namespace ConsoleLibTest
             public int AmountMax { get; set; }
         }
 
+        private enum ReserveResultCode
+        {
+            Successful = 0,
+            WarehouseDoesNotHaveProduct = 1,
+            Error = 255
+        }
+
         private User _user;
         private Warehouse _warehouse;
 
@@ -28,48 +36,79 @@ namespace ConsoleLibTest
 
         public Thread Thread => _thread;
 
+        public IntegrixDataBase _integrixDataBase;
+
         public TestThread(User user, Warehouse warehouse)
         {
             _user = user;
             _warehouse = warehouse;
+            _integrixDataBase = new IntegrixDataBase()
+            {
+                SelectedUser = user,
+                SelectedWarehouse = warehouse
+            };
         }
         private string ReserveHendler(User user, Product product, Warehouse warehouse, int amount)
         {
-            string result = string.Empty;
+            ReserveResultCode resultCode;
+            string resultMessage = string.Empty;
             using (var db = new IntegrixContext())
             {
-                var strategy = db.Database.CreateExecutionStrategy();
-
-                strategy.Execute(() =>
+                using (var transaction = db.Database.BeginTransaction(System.Data.IsolationLevel.ReadCommitted))
                 {
-                    using (var transaction = db.Database.BeginTransaction(System.Data.IsolationLevel.Serializable))
+                    try
+                    {
+                        int numberOfRowInserteed;
+
+                        numberOfRowInserteed = db.Database.ExecuteSqlRaw(
+                            "UPDATE public.product_info_in_warehouse" +
+                            "  SET quantity_free_product=quantity_free_product-{0}, " +
+                            "      quantity_reserved_product=quantity_reserved_product+{0}" +
+                            "  WHERE product_id={1} and warehouse_id={2} and quantity_free_product >= {0};",
+                            amount, product.ProductId, warehouse.WarehouseId);
+
+                        db.SaveChanges();
+                        transaction.Commit();
+
+                        if (numberOfRowInserteed != 0)
+                        {
+                            resultCode = ReserveResultCode.Successful;
+                        }
+                        else
+                        {
+                            resultCode = ReserveResultCode.WarehouseDoesNotHaveProduct;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        transaction.Rollback();
+                        resultCode = ReserveResultCode.Error;
+                        if (ex.InnerException != null)
+                        {
+                            resultMessage = ("Failed to reserve the product. " + ex.Message + ex.InnerException.InnerException.Message);
+                        }
+                        else
+                        {
+                            resultMessage = ("Failed to reserve the product. " + ex.Message);
+                        }
+                    }
+                }
+
+                if (resultCode == ReserveResultCode.Error)
+                {
+                    return resultMessage;
+                }
+                else if (resultCode == ReserveResultCode.Successful)
+                {
+                    using (var transaction = db.Database.BeginTransaction(System.Data.IsolationLevel.ReadCommitted))
                     {
                         try
                         {
-                            var piiw = db.ProductInfoInWarehouses.
-                                FirstOrDefault(value =>
-                                (value.ProductId == product.ProductId) &&
-                                (value.WarehouseId == warehouse.WarehouseId));
-
-                            if (piiw == null)
-                            {
-                                throw new Exception("Selected product not found in selected warehouse.");
-                            }
-                            else if (piiw.QuantityFreeProduct < amount)
-                            {
-                                throw new Exception
-                                    ("The selected warehouse does not have the required quantity of the product.");
-                            }
-
-                            piiw.QuantityFreeProduct -= amount;
-                            piiw.QuantityReservedProduct += amount;
-
-                            db.SaveChanges();
-
                             var order = new Order
                             {
                                 UserId = user.UserId,
-                                OrderData = DateTimeOffset.Now.ToUniversalTime().DateTime
+                                WarehouseId = warehouse.WarehouseId,
+                                OrderDate = DateTimeOffset.Now.ToUniversalTime().DateTime
                             };
                             db.Orders.Add(order);
 
@@ -86,19 +125,64 @@ namespace ConsoleLibTest
                             db.SaveChanges();
 
                             transaction.Commit();
-
-                            result = "Successful.";
                         }
-                        catch(Exception ex)
+                        catch (Exception ex)
                         {
                             transaction.Rollback();
-                            result = ("Failed to reserve the product. " + ex.Message);
+                            resultCode = ReserveResultCode.Error;
+                            resultMessage = ("Failed to reserve the product. " + ex.Message);
                         }
                     }
-                });
+                }
+
+                if (resultCode == ReserveResultCode.WarehouseDoesNotHaveProduct)
+                {
+                    using (var transaction = db.Database.BeginTransaction(System.Data.IsolationLevel.ReadCommitted))
+                    {
+                        try
+                        {
+                            var nri = new NotReservedItem
+                            {
+                                UserId = user.UserId,
+                                ProductId = product.ProductId,
+                                WarehouseId = warehouse.WarehouseId,
+                                Quantity = amount,
+                                Reason = "Selected warehouse does not have selected product.",
+                                ReservationDate = DateTimeOffset.Now.ToUniversalTime().DateTime
+                            };
+                            db.NotReservedItems.Add(nri);
+
+                            db.SaveChanges();
+                            transaction.Commit();
+                        }
+                        catch (Exception ex)
+                        {
+                            transaction.Rollback();
+                            resultCode = ReserveResultCode.Error;
+                            if (ex.InnerException != null)
+                            {
+                                resultMessage = ("Failed to write information about a non-reserved item. " + ex.Message + ex.InnerException.InnerException.Message);
+                            }
+                            else
+                            {
+                                resultMessage = ("Failed to write information about a non-reserved item. " + ex.Message);
+                            }
+                        }
+                    }
+                }
             }
 
-            return result;
+            switch (resultCode)
+            {
+                case ReserveResultCode.Successful:
+                    return "Successful.";
+                case ReserveResultCode.WarehouseDoesNotHaveProduct:
+                    return "Selected warehouse does not have selected product.";
+                case ReserveResultCode.Error:
+                    return resultMessage;
+                default:
+                    return "Unknown error.";
+            }
         }
         public string Reserve(Product product, int amount)
         {
@@ -117,7 +201,8 @@ namespace ConsoleLibTest
             {
                 try
                 {
-                    _resultMessages[i] = Reserve(parameters.Product, random.Next(parameters.AmountMin, parameters.AmountMax + 1));;
+                    //_resultMessages[i] = Reserve(parameters.Product, random.Next(parameters.AmountMin, parameters.AmountMax + 1));;
+                    _resultMessages[i] = _integrixDataBase.Reserve(parameters.Product, random.Next(parameters.AmountMin, parameters.AmountMax + 1));
                 }
                 catch(Exception ex)
                 {
@@ -237,50 +322,61 @@ namespace ConsoleLibTest
 
         static void Main(string[] args)
         {
-            User[] users;
-            Product product;
-            Warehouse warehouse;
-            PrintProductAndTheirQuanity();
-            using (var db = new IntegrixContext())
-            {
-                users = db.Users.AsNoTracking().ToArray();
-                product = db.Products.AsNoTracking().FirstOrDefault();
-                warehouse = db.Warehouses.AsNoTracking().FirstOrDefault();
-                //var dns_3060ti = new ProductInfoInWarehouse
-                //{
-                //    Product = product,
-                //    Warehouse = warehouse,
-                //    QuantityFreeProduct = 100
-                //};
-                //db.ProductInfoInWarehouses.Add(dns_3060ti);
-                //db.SaveChanges();
-            }
+            //User[] users;
+            //Product product;
+            //Warehouse warehouse;
+            //PrintProductAndTheirQuanity();
+            //using (var db = new IntegrixContext())
+            //{
+            //    users = db.Users.AsNoTracking().ToArray();
+            //    product = db.Products.AsNoTracking().FirstOrDefault();
+            //    warehouse = db.Warehouses.AsNoTracking().FirstOrDefault();
+            //    //var dns_3060ti = new ProductInfoInWarehouse
+            //    //{
+            //    //    Product = product,
+            //    //    Warehouse = warehouse,
+            //    //    QuantityFreeProduct = 100
+            //    //};
+            //    //db.ProductInfoInWarehouses.Add(dns_3060ti);
+            //    //db.SaveChanges();
+            //}
 
-            var countThreads = 2; // users.Length
+            //var countThreads = 4; // users.Length
 
-            TestThread[] testThreads = new TestThread[countThreads];
+            //TestThread[] testThreads = new TestThread[countThreads];
 
-            for(int i = 0; i < countThreads; i++)
-            {
-                testThreads[i] = new TestThread(users[i], warehouse);
-            }
+            //for(int i = 0; i < countThreads; i++)
+            //{
+            //    testThreads[i] = new TestThread(users[i], warehouse);
+            //}
 
-            foreach(var test in testThreads)
-            {
-                test.Start(10, product, 1, 10);
-            }
+            //foreach(var test in testThreads)
+            //{
+            //    test.Start(100, product, 1, 4);
+            //}
 
-            foreach (var test in testThreads)
-            {
-                test.Thread.Join();
-            }
+            //foreach (var test in testThreads)
+            //{
+            //    test.Thread.Join();
+            //}
 
-            foreach (var test in testThreads)
-            {
-                test.PrintResultInFile($"Result\\{test.Thread.Name}.txt");
-            }
+            //foreach (var test in testThreads)
+            //{
+            //    test.PrintResultInFile($"Result\\{test.Thread.Name}.txt");
+            //}
 
-            PrintProductAndTheirQuanity();
+            //PrintProductAndTheirQuanity();
+
+            var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+
+            config.ConnectionStrings.ConnectionStrings.Add(new ConnectionStringSettings(
+                name: "Database", connectionString: "Host=localhost;Port=5432;Database=integrix;Username=postgres;Password=kekpek"));
+
+            config.Save(ConfigurationSaveMode.Modified);
+
+            Console.WriteLine(config.ConnectionStrings.ConnectionStrings["Database"].ConnectionString);
+            config.ConnectionStrings.ConnectionStrings["Database"].ConnectionString = "Host=localhost;Port=5432;Database=integrix;Username=postgres;Password=kekpek";
+            Console.WriteLine(ConfigurationManager.ConnectionStrings["Database"].ConnectionString);
         }
     }
 }

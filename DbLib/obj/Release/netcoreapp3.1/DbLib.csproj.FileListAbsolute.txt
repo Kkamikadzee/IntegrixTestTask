@@ -1,0 +1,12 @@
+M:\Source\C#\IntegrixTestTask\DbLib\bin\Release\netcoreapp3.1\DbLib.deps.json
+M:\Source\C#\IntegrixTestTask\DbLib\bin\Release\netcoreapp3.1\DbLib.runtimeconfig.json
+M:\Source\C#\IntegrixTestTask\DbLib\bin\Release\netcoreapp3.1\DbLib.runtimeconfig.dev.json
+M:\Source\C#\IntegrixTestTask\DbLib\bin\Release\netcoreapp3.1\DbLib.dll
+M:\Source\C#\IntegrixTestTask\DbLib\bin\Release\netcoreapp3.1\DbLib.pdb
+M:\Source\C#\IntegrixTestTask\DbLib\obj\Release\netcoreapp3.1\DbLib.csprojAssemblyReference.cache
+M:\Source\C#\IntegrixTestTask\DbLib\obj\Release\netcoreapp3.1\DbLib.csproj.CoreCompileInputs.cache
+M:\Source\C#\IntegrixTestTask\DbLib\obj\Release\netcoreapp3.1\DbLib.AssemblyInfoInputs.cache
+M:\Source\C#\IntegrixTestTask\DbLib\obj\Release\netcoreapp3.1\DbLib.AssemblyInfo.cs
+M:\Source\C#\IntegrixTestTask\DbLib\obj\Release\netcoreapp3.1\DbLib.dll
+M:\Source\C#\IntegrixTestTask\DbLib\obj\Release\netcoreapp3.1\DbLib.pdb
+M:\Source\C#\IntegrixTestTask\DbLib\obj\Release\netcoreapp3.1\DbLib.genruntimeconfig.cache

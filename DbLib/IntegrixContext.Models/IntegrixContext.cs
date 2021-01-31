@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
@@ -17,6 +18,7 @@ namespace DbLib.IntegrixContext.Models
         {
         }
 
+        public virtual DbSet<NotReservedItem> NotReservedItems { get; set; }
         public virtual DbSet<Order> Orders { get; set; }
         public virtual DbSet<OrderItem> OrderItems { get; set; }
         public virtual DbSet<Product> Products { get; set; }
@@ -28,9 +30,9 @@ namespace DbLib.IntegrixContext.Models
         {
             if (!optionsBuilder.IsConfigured)
             {
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-                optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=integrix;Username=postgres;Password=kekpek", 
-                    npgsqlOptionsAction: options => options.EnableRetryOnFailure(5, TimeSpan.FromSeconds(3), null));
+                optionsBuilder.UseNpgsql(
+                    ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None).
+                    ConnectionStrings.ConnectionStrings["Database"].ConnectionString);
             }
         }
 
@@ -38,21 +40,71 @@ namespace DbLib.IntegrixContext.Models
         {
             modelBuilder.HasAnnotation("Relational:Collation", "Russian_Russia.1251");
 
+            modelBuilder.Entity<NotReservedItem>(entity =>
+            {
+                entity.HasKey(e => e.NotReservedItemsId)
+                    .HasName("not_reserved_items_pkey");
+
+                entity.ToTable("not_reserved_items");
+
+                entity.Property(e => e.NotReservedItemsId).HasColumnName("not_reserved_items_id");
+
+                entity.Property(e => e.ProductId).HasColumnName("product_id");
+
+                entity.Property(e => e.Quantity).HasColumnName("quantity");
+
+                entity.Property(e => e.Reason)
+                    .HasMaxLength(128)
+                    .HasColumnName("reason");
+
+                entity.Property(e => e.ReservationDate).HasColumnName("reservation_date");
+
+                entity.Property(e => e.UserId).HasColumnName("user_id");
+
+                entity.Property(e => e.WarehouseId).HasColumnName("warehouse_id");
+
+                entity.HasOne(d => d.Product)
+                    .WithMany(p => p.NotReservedItems)
+                    .HasForeignKey(d => d.ProductId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("fk_product_and_not_reserved_items");
+
+                entity.HasOne(d => d.User)
+                    .WithMany(p => p.NotReservedItems)
+                    .HasForeignKey(d => d.UserId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("fk_user_and_not_reserved_items");
+
+                entity.HasOne(d => d.Warehouse)
+                    .WithMany(p => p.NotReservedItems)
+                    .HasForeignKey(d => d.WarehouseId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("fk_warehouse_and_not_reserved_items");
+            });
+
             modelBuilder.Entity<Order>(entity =>
             {
                 entity.ToTable("orders");
 
                 entity.Property(e => e.OrderId).HasColumnName("order_id");
 
-                entity.Property(e => e.OrderData).HasColumnName("order_data");
+                entity.Property(e => e.OrderDate).HasColumnName("order_date");
 
                 entity.Property(e => e.UserId).HasColumnName("user_id");
+
+                entity.Property(e => e.WarehouseId).HasColumnName("warehouse_id");
 
                 entity.HasOne(d => d.User)
                     .WithMany(p => p.Orders)
                     .HasForeignKey(d => d.UserId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("fk_user_and_orders");
+
+                entity.HasOne(d => d.Warehouse)
+                    .WithMany(p => p.Orders)
+                    .HasForeignKey(d => d.WarehouseId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("fk_warehouse_and_orders");
             });
 
             modelBuilder.Entity<OrderItem>(entity =>

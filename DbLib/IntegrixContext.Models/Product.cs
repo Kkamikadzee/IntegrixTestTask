@@ -9,6 +9,7 @@ namespace DbLib.IntegrixContext.Models
     {
         public Product()
         {
+            NotReservedItems = new HashSet<NotReservedItem>();
             OrderItems = new HashSet<OrderItem>();
             ProductInfoInWarehouses = new HashSet<ProductInfoInWarehouse>();
         }
@@ -16,6 +17,7 @@ namespace DbLib.IntegrixContext.Models
         public int ProductId { get; set; }
         public string FullName { get; set; }
 
+        public virtual ICollection<NotReservedItem> NotReservedItems { get; set; }
         public virtual ICollection<OrderItem> OrderItems { get; set; }
         public virtual ICollection<ProductInfoInWarehouse> ProductInfoInWarehouses { get; set; }
     }

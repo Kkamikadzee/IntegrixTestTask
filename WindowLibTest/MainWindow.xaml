@@ -1,0 +1,78 @@
+﻿<Window x:Class="WindowLibTest.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WindowLibTest"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="400" Width="655">
+    <DockPanel>
+        <StackPanel VerticalAlignment="Center">
+
+            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <TextBlock Margin="4" Text="Warehouse:"></TextBlock>
+                        <ComboBox Name="cbWarehouse" HorizontalAlignment="Left" Margin="4" VerticalAlignment="Top" Width="120"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <TextBlock Margin="4" Text="Product:"></TextBlock>
+                        <ComboBox Name="cbProduct" HorizontalAlignment="Left" Margin="4" VerticalAlignment="Top" Width="120"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <TextBlock Margin="4" Text="Amount Threads:"></TextBlock>
+                        <Slider Name="sliderAmountThreads" HorizontalAlignment="Left" Margin="4" VerticalAlignment="Top" Width="120"
+                            Minimum="1" Maximum="10" Value="4" TickFrequency="1" IsSnapToTickEnabled="True" 
+                            ValueChanged="sliderAmountThreads_ValueChanged"/>
+                        <TextBlock Name="tbAmountThreads" Margin="4" Width="12" Text="4"></TextBlock>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <TextBlock Margin="4" Text="Amount query per thread:"></TextBlock>
+                        <Slider Name="sliderAmountQuery" HorizontalAlignment="Left" Margin="4" VerticalAlignment="Top" Width="120"
+                            Minimum="10" Maximum="1000" Value="100" TickFrequency="10" IsSnapToTickEnabled="True" 
+                            ValueChanged="sliderAmountQuery_ValueChanged"/>
+                        <TextBlock Name="tbAmountQuery" Margin="4" Width="26" Text="100"></TextBlock>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <TextBlock Margin="4" Text="Min quantity product:"></TextBlock>
+                        <Slider Name="sliderMinQuantityProduct" HorizontalAlignment="Left" Margin="4" VerticalAlignment="Top" Width="120"
+                            Minimum="1" Maximum="5" Value="1"  TickFrequency="1" IsSnapToTickEnabled="True" 
+                            ValueChanged="sliderMinQuantityProduct_ValueChanged"/>
+                        <TextBlock Name="tbMinQuantityProduct" Margin="4" Width="12" Text="1"></TextBlock>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <TextBlock Margin="4" Text="Max quantity product:"></TextBlock>
+                        <Slider Name="sliderMaxQuantityProduct" HorizontalAlignment="Left" Margin="4" VerticalAlignment="Top" Width="120"
+                            Minimum="1" Maximum="10" Value="4"  TickFrequency="1" IsSnapToTickEnabled="True" 
+                            ValueChanged="sliderMaxQuantityProduct_ValueChanged"/>
+                        <TextBlock Name="tbMaxQuantityProduct" Margin="4" Width="12" Text="4"></TextBlock>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel>
+                    <Button Margin="4" Width="156" Height="22" Content="Create ConnectionString" Click="CreateConnectionString_Click"></Button>
+                    <Button Margin="4" Width="156" Height="22" Content="Create Tables" Click="CreateTables_Click"></Button>
+                    <Button Margin="4" Width="156" Height="22" Content="Install Tables" Click="Install_Click"></Button>
+                    <Button Margin="4" Width="156" Height="22" Content="Refresh" Click="Refresh_Click"></Button>
+                    <Button Margin="4" Width="156" Height="22" Content="Create test" Click="CreateTest_Click"></Button>
+                    <Button Margin="4" Width="156" Height="22" Content="Start test" Click="StartTest_Click"></Button>
+                    <Button Margin="4" Width="156" Height="22" Content="Order Table" Click="ShowOrderTable_Click"></Button>
+                    <Button Margin="4" Width="156" Height="22" Content="Product/Warehouse Table" Click="ShowProductInfoInWarehousesTable_Click"></Button>
+                    <Button Margin="4" Width="156" Height="22" Content="Sum(quantity) in OrderItems" Click="SumQuantity_Click"></Button>
+                    <Button Margin="4" Width="156" Height="22" Content="NotReservedItems Table" Click="NotReservedItems_Click"></Button>
+                </StackPanel>
+            </StackPanel>
+
+        </StackPanel>
+        <StackPanel DockPanel.Dock="Bottom">
+            <StatusBar HorizontalAlignment="Right">
+                <StatusBarItem>
+                    <TextBlock Name="tbStatus" Text="Status"></TextBlock>
+                </StatusBarItem>
+            </StatusBar>
+        </StackPanel>
+        <StackPanel>
+            <ListBox Name="threadsList" ScrollViewer.VerticalScrollBarVisibility="Auto" Height="362"></ListBox>
+        </StackPanel>
+    </DockPanel>
+</Window>
